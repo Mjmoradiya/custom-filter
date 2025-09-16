@@ -1,5 +1,3 @@
-
-
 <div class="section-background color-{{ section.settings.color_scheme }}"></div>
 <div class="section page-width-content color-{{ section.settings.color_scheme }}">
   <div
@@ -18,12 +16,19 @@
     {% content_for 'blocks' %}
   </div>
 </div>
+
 <div class="ymm-form-container">
   <form id="ymm-filter-form" action="/collections/all" method="get">
     <select name="year" id="ymm-year">
       <option value="">Select Year</option>
+      {% comment %} Liquid loop to populate years {% endcomment %}
+      {% assign years = '' %}
       {% for vehicle in shop.metaobjects.vehicles.values %}
-        <option value="{{ vehicle.year }}">{{ vehicle.year }}</option>
+        {% assign year_value = vehicle.year | downcase %}
+        {% unless years contains year_value %}
+          <option value="{{ year_value }}">{{ vehicle.year }}</option>
+          {% assign years = years | append: year_value | append: ',' %}
+        {% endunless %}
       {% endfor %}
     </select>
 
@@ -38,6 +43,83 @@
     <button type="submit" disabled>Find Parts</button>
   </form>
 </div>
+
+<script>
+  // Vehicle data ko Liquid se JavaScript mein lana
+  const vehicleData = {{ shop.metaobjects.vehicles.values | json }};
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const ymmForm = document.getElementById('ymm-filter-form');
+    const yearSelect = document.getElementById('ymm-year');
+    const makeSelect = document.getElementById('ymm-make');
+    const modelSelect = document.getElementById('ymm-model');
+    const findButton = ymmForm.querySelector('button');
+
+    // Make और Model dropdowns ko populate karne ka function
+    const populateDropdown = (selectElement, options) => {
+      selectElement.innerHTML = '';
+      selectElement.disabled = true;
+      let defaultOption = '';
+      if (selectElement.id === 'ymm-make') {
+        defaultOption = 'Select Make';
+      } else {
+        defaultOption = 'Select Model';
+      }
+      selectElement.add(new Option(defaultOption, ''));
+      
+      options.forEach(option => {
+        selectElement.add(new Option(option.label, option.value));
+      });
+    };
+
+    // User selection ke aadhar par filtering
+    yearSelect.addEventListener('change', () => {
+      const selectedYear = yearSelect.value;
+      let makes = [];
+      if (selectedYear) {
+        makes = [...new Set(vehicleData.filter(v => v.year.toLowerCase() === selectedYear).map(v => v.make.toLowerCase()))];
+        populateDropdown(makeSelect, makes.map(make => ({ label: make, value: make })));
+        makeSelect.disabled = false;
+        modelSelect.disabled = true;
+        findButton.disabled = true;
+      }
+    });
+
+    makeSelect.addEventListener('change', () => {
+      const selectedYear = yearSelect.value;
+      const selectedMake = makeSelect.value;
+      let models = [];
+      if (selectedMake) {
+        models = [...new Set(vehicleData.filter(v => v.year.toLowerCase() === selectedYear && v.make.toLowerCase() === selectedMake).map(v => v.model.toLowerCase()))];
+        populateDropdown(modelSelect, models.map(model => ({ label: model, value: model })));
+        modelSelect.disabled = false;
+        findButton.disabled = true;
+      }
+    });
+    
+    modelSelect.addEventListener('change', () => {
+        if(modelSelect.value) {
+            findButton.disabled = false;
+        } else {
+            findButton.disabled = true;
+        }
+    });
+
+    // Form submit hone par URL generate karna
+    ymmForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const year = yearSelect.value;
+      const make = makeSelect.value;
+      const model = modelSelect.value;
+      
+      if (year && make && model) {
+        const tag = `ymm_${year.toLowerCase()}_${make.toLowerCase()}_${model.toLowerCase()}`;
+        const redirectUrl = `${ymmForm.action}/${tag}`;
+        window.location.href = redirectUrl;
+      }
+    });
+  });
+</script>
 
 {% schema %}
 {
