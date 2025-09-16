@@ -18,6 +18,26 @@
     {% content_for 'blocks' %}
   </div>
 </div>
+<div class="ymm-form-container">
+  <form id="ymm-filter-form" action="/collections/all" method="get">
+    <select name="year" id="ymm-year">
+      <option value="">Select Year</option>
+      {% for vehicle in shop.metaobjects.vehicles.values %}
+        <option value="{{ vehicle.year }}">{{ vehicle.year }}</option>
+      {% endfor %}
+    </select>
+
+    <select name="make" id="ymm-make" disabled>
+      <option value="">Select Make</option>
+    </select>
+
+    <select name="model" id="ymm-model" disabled>
+      <option value="">Select Model</option>
+    </select>
+    
+    <button type="submit" disabled>Find Parts</button>
+  </form>
+</div>
 
 {% schema %}
 {
